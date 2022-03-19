@@ -1,0 +1,86 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1174.vdcb_d054cf74a_">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2064.v5eef7d0982b_e"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2064.v5eef7d0982b_e">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description>CI/CD pipeline for timeoff-management application</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <com.cloudbees.jenkins.GitHubPushTrigger plugin="github@1.34.3">
+          <spec></spec>
+        </com.cloudbees.jenkins.GitHubPushTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2680.vf642ed4fa_d55">
+    <script>pipeline {
+    agent any
+    environment { 
+        registry = &quot;jarcil13/timeoff-management&quot; 
+        registryCredential = &apos;dockerhubJuan&apos; 
+        dockerImage = &apos;&apos; 
+    }
+    stages {
+        stage(&apos;Cloning application source code&apos;) { 
+            steps { 
+                git &apos;https://github.com/jarcil13/timeoff-management-application.git&apos; 
+            }
+        } 
+        stage(&apos;Building image&apos;) { 
+            steps { 
+                script { 
+                    dockerImage = docker.build registry + &quot;:ci-$BUILD_NUMBER&quot;  
+                }
+            } 
+        }
+        stage(&apos;Push produced image to registry&apos;) { 
+            steps { 
+                script { 
+                    docker.withRegistry( &apos;&apos;, registryCredential ) { 
+                        dockerImage.push() 
+                    }
+                } 
+            }
+        }
+        stage(&apos;Deploy approval&apos;) {
+            steps {
+              input &quot;Is it safe to deploy the built image ci-$BUILD_NUMBER?&quot;
+            }
+        }
+        
+        stage(&apos;Deployment&apos;) {
+            steps {
+                withEnv([&quot;ANSIBLE_CONFIG=/vagrant/provisioning/config/ansible.cfg&quot;]) {
+                    ansiblePlaybook(
+                        inventory: &apos;/vagrant/provisioning/inventory/prod&apos;,
+                        playbook: &apos;/vagrant/provisioning/app_deploy.yml&apos;,
+                        extraVars: [
+                            app_version_tag: &apos;ci-$BUILD_NUMBER&apos;,
+                            ansible_ssh_private_key_file: &apos;$HOME/private_key&apos;
+                       ]
+                    )
+                }
+            }
+        }
+        stage(&apos;Cleaning up&apos;) { 
+            steps { 
+                sh &quot;docker rmi $registry:ci-$BUILD_NUMBER&quot; 
+            }
+
+        } 
+    }
+}
+</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

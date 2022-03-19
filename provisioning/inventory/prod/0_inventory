@@ -1,0 +1,8 @@
+jenkins-master ansible_connection=local
+app1           ansible_host=192.168.56.2 ansible_ssh_private_key_file=/vagrant/.vagrant/machines/app1/virtualbox/private_key ansible_user=vagrant
+
+[app]
+app1
+
+[jenkins]
+jenkins-master

@@ -1,0 +1,29 @@
+- name: Configure Jenkins jobs
+  hosts: jenkins
+  become: yes
+  gather_facts: no
+  vars:  
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+    - name: Install docker python SDK using pip
+      include_role: 
+        name: geerlingguy.pip
+      vars: 
+          pip_install_packages:
+            - name: python-jenkins
+
+    - name: Create a jenkins job for timeoff application
+      jenkins_job:
+        config: "{{ lookup('template', 'jenkins-jobs/timeoff_pipeline.xml') }}"
+        name: timeoff-pipeline
+        user: admin
+        password: "{{ jenkins_admin_password }}"
+        url: http://{{ jenkins_hostname }}:{{ jenkins_http_port }}
+    
+    - name: Create Jenkins secrets
+      jenkins_script: 
+        script: "{{ lookup('template', 'jenkins-jobs/jenkins-secrets.groovy.j2') }}"
+        user: admin
+        password: "{{ jenkins_admin_password }}"
+        url: http://{{ jenkins_hostname }}:{{ jenkins_http_port }}

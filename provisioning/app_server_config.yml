@@ -1,0 +1,18 @@
+---
+- name: Configure App server, software base and OS 
+  hosts: app
+  become: yes
+  gather_facts: yes
+  tasks:
+
+    - name: Install docker
+      include_role: 
+        name: ansible_role_docker
+    
+    - name: Install docker python SDK using pip
+      include_role: 
+        name: geerlingguy.pip
+      vars: 
+          pip_install_packages:
+            - name: docker
+...

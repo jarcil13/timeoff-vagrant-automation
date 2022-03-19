@@ -1,0 +1,38 @@
+- name: Install Jenkins
+  hosts: jenkins
+  become: yes
+  gather_facts: yes
+  tasks:
+
+    - name: Install docker since its needed for builds
+      include_role: 
+        name: ansible_role_docker
+    
+    - name: Install java default version for OS
+      include_role: 
+        name: geerlingguy.java
+
+    - name: Install Jenkins
+      include_role: 
+        name: geerlingguy.jenkins
+      vars:
+        jenkins_plugins:
+          - git
+          - github
+          - docker-workflow
+          - pipeline-input-step
+          - ansible
+
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: Copy ssh private key for Jenkins user
+      copy: 
+        src: /vagrant/.vagrant/machines/app1/virtualbox/private_key
+        dest: "{{ jenkins_home }}/"
+        owner: jenkins
+        group: jenkins
+        mode: '0600'

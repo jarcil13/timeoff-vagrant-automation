@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+    environment { 
+        registry = "jarcil13/timeoff-management" 
+        registryCredential = 'dockerhubJuan' 
+        dockerImage = '' 
+    }
+    stages {
+        stage('Cloning application source code') { 
+            steps { 
+                git 'https://github.com/jarcil13/timeoff-management-application.git' 
+            }
+        } 
+        stage('Building image') { 
+            steps { 
+                script { 
+                    dockerImage = docker.build registry + ":ci-$BUILD_NUMBER"  
+                }
+            } 
+        }
+        stage('Push produced image to registry') { 
+            steps { 
+                script { 
+                    docker.withRegistry( '', registryCredential ) { 
+                        dockerImage.push() 
+                    }
+                } 
+            }
+        }
+        stage('Deploy approval') {
+            steps {
+              input "Is it safe to deploy the built image ci-$BUILD_NUMBER?"
+            }
+        }
+        
+        stage('Deployment') {
+            steps {
+                withEnv(["ANSIBLE_CONFIG=/vagrant/provisioning/config/ansible.cfg"]) {
+                    ansiblePlaybook(
+                        inventory: '/vagrant/provisioning/inventory/prod',
+                        playbook: '/vagrant/provisioning/app_deploy.yml',
+                        extraVars: [
+                            app_version_tag: 'ci-$BUILD_NUMBER',
+                            ansible_ssh_private_key_file: '$HOME/private_key'
+                       ]
+                    )
+                }
+            }
+        }
+        stage('Cleaning up') { 
+            steps { 
+                sh "docker rmi $registry:ci-$BUILD_NUMBER" 
+            }
+
+        } 
+    }
+}

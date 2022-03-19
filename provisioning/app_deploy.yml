@@ -1,0 +1,16 @@
+---
+- name: Start application on app servers
+  hosts: app
+  become: yes
+  gather_facts: no
+  tasks:
+    
+    - name: Start application container
+      docker_container:
+        name: timeoff-management
+        image: "{{ app_registry }}:{{ app_version_tag }}"
+        state: started
+        restart: yes
+        ports:
+          - "{{ app_container_port }}:3000"
+...

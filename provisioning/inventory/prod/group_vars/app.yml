@@ -1,0 +1,5 @@
+---
+app_registry: jarcil13/timeoff-management
+app_version_tag: latest
+app_container_port: 3000
+...

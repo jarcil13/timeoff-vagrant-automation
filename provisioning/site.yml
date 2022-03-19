@@ -1,0 +1,12 @@
+---
+# App server config and first deployment
+- import_playbook: app_server_config.yml
+- import_playbook: app_deploy.yml
+
+# Jenkins installation and minimal config
+- import_playbook: automation_server_config.yml
+
+# Jenkins jobs and other configuration
+- import_playbook: automation_server_jobs.yml
+...
+
